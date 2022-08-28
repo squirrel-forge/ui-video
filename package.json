@@ -1,0 +1,43 @@
+{
+  "name": "@squirrel-forge/ui-video",
+  "version": "0.5.0",
+  "description": "An accessible video player with events and plugin support, made for the browser and babel compatible.",
+  "main": "src/es6/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "directories": {
+    "docs": "docs",
+    "src": "src"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/squirrel-forge/ui-video.git"
+  },
+  "keywords": [
+    "ui",
+    "video",
+    "custom-events",
+    "responsive",
+    "plugins",
+    "babel",
+    "browser"
+  ],
+  "author": "Daniel Hartwell <me@siux.info> (http://siux.info)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/squirrel-forge/ui-video/issues"
+  },
+  "homepage": "https://github.com/squirrel-forge/ui-video#readme",
+  "peerDependencies": {
+    "@squirrel-forge/mediaquery-events": "^0.8.x"
+  },
+  "peerDependenciesMeta": {
+    "@squirrel-forge/mediaquery-events": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@squirrel-forge/ui-core": "^0.10.x"
+  }
+}
