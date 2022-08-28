@@ -1,6 +1,6 @@
 {
   "name": "@squirrel-forge/ui-video",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "An accessible video player with events and plugin support, made for the browser and babel compatible.",
   "main": "src/es6/index.js",
   "scripts": {
