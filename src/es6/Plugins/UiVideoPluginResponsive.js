@@ -115,7 +115,8 @@ export class UiVideoPluginResponsive extends UiPlugin {
 
                 // Add query listener to update source
                 config.media.addEventListener( queries[ j ], () => {
-                    this.context.selectSource();
+                    if ( this.debug ) this.debug.log( this.constructor.name + '::media_event', queries[ j ] );
+                    this.context.selectSource( this.context.getCurrentIndex() );
                 }, false, true );
             }
         }
@@ -157,6 +158,7 @@ export class UiVideoPluginResponsive extends UiPlugin {
                 // Only assign breakpoint data from matching queries
                 //  note this always happens in definition order
                 if ( config.media.matches( query ) ) {
+                    if ( this.debug ) this.debug.log( this.constructor.name + '::responsive_update_source', query, breakpoint );
                     Object.assign( source, breakpoint );
                 }
             }
