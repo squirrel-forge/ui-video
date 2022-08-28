@@ -72,7 +72,8 @@ class UiVideoComponent extends UiComponent {
     video : null|HTMLVideoElement
     selectSource( index = null ) {} // void
     setPoster( poster ) {} // void
-    getCurrentSource() {} // String
+    getCurrentSource() {} // null|String
+    getCurrentIndex() {} // null|Number
     setSource( source, setter = null ) {} // void
     unsetSource( poster = true, setter = null ) {} // void
 }
