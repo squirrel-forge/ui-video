@@ -365,6 +365,15 @@ export class UiVideoComponent extends UiComponent {
     }
 
     /**
+     * Get current video src index
+     * @public
+     * @return {number|null} - Current source index
+     */
+    getCurrentIndex() {
+        return this.#current_index;
+    }
+
+    /**
      * Set video source
      * @public
      * @param {VideoSource|Object} source - Video source object
