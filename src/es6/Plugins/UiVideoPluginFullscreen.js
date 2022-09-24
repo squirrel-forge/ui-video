@@ -45,7 +45,7 @@ export class UiVideoPluginFullscreen extends UiPlugin {
             // @type {Object}
             fullscreen : {
 
-                // Fullscreen toggle enabled
+                // Fullscreen enabled
                 // @type {boolean}
                 enabled : true,
 
@@ -101,24 +101,29 @@ export class UiVideoPluginFullscreen extends UiPlugin {
         }
 
         /**
-         * Prevent click events from bubbling to anywhere else
-         *  to avoid conflicts with other underlying events
+         * Detect exit full screen handler
          * @private
-         * @param {Event} event - Single or double click event
          * @return {void}
          */
-        control.addEventListener( 'dblclick', ( event ) => {
-            event.stopPropagation();
-        } );
-        control.addEventListener( 'click', ( event ) => {
-            event.stopPropagation();
-        } );
+        const exit_handler = () => {
+            if ( !document.fullScreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement ) {
+
+                // Disable full screen mode and set states only
+                if ( this.context.states.is( 'fullscreen' ) ) {
+                    this.#exit_fullscreen( fullscreen, minimize, true );
+                }
+            }
+        };
+        document.addEventListener('fullscreenchange', exit_handler, false);
+        document.addEventListener('mozfullscreenchange', exit_handler, false);
+        document.addEventListener('MSFullscreenChange', exit_handler, false);
+        document.addEventListener('webkitfullscreenchange', exit_handler, false);
 
         // Bind double click toggle
         this.#bind_dblclick( fullscreen, minimize );
 
         // Bind full screen/minimize toggle
-        this.#bind_toggle( fullscreen, minimize );
+        if ( control ) this.#bind_toggle( fullscreen, minimize );
 
         // Hide control if not enabled initially
         if ( !this.context.config.get( 'fullscreen.enabled' ) ) {
@@ -190,14 +195,25 @@ export class UiVideoPluginFullscreen extends UiPlugin {
      * @return {void}
      */
     #check_availability( controls, control, fullscreen, minimize ) {
+
+        // Always throw if api not available
         if ( !document.fullscreenEnabled ) {
             window.console.error( this.constructor.name + '::check_availability Fullscreen API not available' );
             throw new UiVideoPluginFullscreenException( 'Fullscreen API not available' );
         }
+
+        // Break if there are no controls available
         if ( !controls ) throw new UiVideoPluginFullscreenException( 'Video dom.controls not available' );
-        if ( !control ) throw new UiVideoPluginFullscreenException( 'Fullscreen dom.fullscreen.control not available' );
-        if ( !fullscreen ) throw new UiVideoPluginFullscreenException( 'Fullscreen dom.fullscreen.on not available' );
-        if ( !minimize ) throw new UiVideoPluginFullscreenException( 'Fullscreen dom.fullscreen.off not available' );
+
+        // Notify if toggle control not available
+        if ( !control ) {
+            if ( this.debug) this.debug.warn( this.constructor.name + '::check_availability Fullscreen dom.fullscreen.control not available' );
+        } else {
+
+            // Require both toggle button states
+            if ( !fullscreen ) throw new UiVideoPluginFullscreenException( 'Fullscreen dom.fullscreen.on not available' );
+            if ( !minimize ) throw new UiVideoPluginFullscreenException( 'Fullscreen dom.fullscreen.off not available' );
+        }
     }
 
     /**
@@ -210,11 +226,13 @@ export class UiVideoPluginFullscreen extends UiPlugin {
     #request_fullscreen( fullscreen, minimize ) {
         this.context.dom.requestFullscreen().then( () => {
             this.context.states.set( 'fullscreen' );
-            const display = this.context.config.get( 'fullscreen.display' );
-            this.context.constructor.hideControl( fullscreen, display );
-            this.context.constructor.showControl( minimize, display );
-            fullscreen.blur();
-            if ( this.context.config.get( 'controls.refocus' ) ) minimize.focus();
+            if ( fullscreen && minimize ) {
+                const display = this.context.config.get( 'fullscreen.display' );
+                this.context.constructor.hideControl( fullscreen, display );
+                this.context.constructor.showControl( minimize, display );
+                fullscreen.blur();
+                if ( this.context.config.get( 'controls.refocus' ) ) minimize.focus();
+            }
         } ).catch( ( e ) => {
             window.console.error( this.constructor.name + '::requestFullscreen Failed:', e );
             throw new UiVideoPluginFullscreenException( 'Failed to open fullscreen mode' );
@@ -231,11 +249,13 @@ export class UiVideoPluginFullscreen extends UiPlugin {
      */
     #exit_fullscreen( fullscreen, minimize, noexit = false ) {
         this.context.states.unset( 'fullscreen' );
-        const display = this.context.config.get( 'fullscreen.display' );
-        this.context.constructor.hideControl( minimize, display );
-        this.context.constructor.showControl( fullscreen, display );
-        minimize.blur();
-        if ( this.context.config.get( 'controls.refocus' ) ) fullscreen.focus();
+        if ( fullscreen && minimize ) {
+            const display = this.context.config.get( 'fullscreen.display' );
+            this.context.constructor.showControl( fullscreen, display );
+            this.context.constructor.hideControl( minimize, display );
+            minimize.blur();
+            if ( this.context.config.get( 'controls.refocus' ) ) fullscreen.focus();
+        }
         if ( noexit ) return;
         try {
             document.exitFullscreen();
@@ -296,25 +316,6 @@ export class UiVideoPluginFullscreen extends UiPlugin {
             event.preventDefault();
             this.#exit_fullscreen( fullscreen, minimize );
         } );
-
-        /**
-         * Detect exit full screen handler
-         * @private
-         * @return {void}
-         */
-        const exit_handler = () => {
-            if ( !document.fullScreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement ) {
-
-                // Disable full screen mode and set states only
-                if ( this.context.states.is( 'fullscreen' ) ) {
-                    this.#exit_fullscreen( fullscreen, minimize, true );
-                }
-            }
-        };
-        document.addEventListener('fullscreenchange', exit_handler, false);
-        document.addEventListener('mozfullscreenchange', exit_handler, false);
-        document.addEventListener('MSFullscreenChange', exit_handler, false);
-        document.addEventListener('webkitfullscreenchange', exit_handler, false);
 
         // Initial state
         const display = this.context.config.get( 'fullscreen.display' );
