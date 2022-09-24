@@ -46,7 +46,7 @@ export class UiVideoPluginProgress extends UiPlugin {
             // @type {Object}
             progress : {
 
-                // Allow timeline skipping
+                // Allow timeline skipping, defined by readonly state of control if set to null
                 // @type {null|boolean}
                 interactive : null,
 
@@ -111,41 +111,22 @@ export class UiVideoPluginProgress extends UiPlugin {
     initComponent( context ) {
         super.initComponent( context );
 
+        /**
+         * Time update related actions are independent of the controls existance
+         * @private
+         * @return {void}
+         */
+        this.context.video.addEventListener( 'timeupdate', () => { this.#event_timeupdate(); } );
+
         // Get references for component related events
         const control = this.context.getDomRefs('progress.control', false);
-        const cssprop = this.context.config.get( 'progress.cssprop' );
         const progress = this.context.getDomRefs('progress.input', false);
-
-        // CSS custom property requested
-        if ( cssprop ) {
-
-            /**
-             * Time update related actions
-             * @private
-             * @return {void}
-             */
-            this.context.video.addEventListener( 'timeupdate', () => { this.#event_timeupdate(); } );
-        }
 
         // No control no bindings
         if ( !control ) {
             if ( this.debug ) this.debug.error(this.constructor.name + '::initComponent No progress control available');
             return;
         }
-
-        /**
-         * Prevent click events from bubbling to anywhere else
-         *  to avoid conflicts with other underlying events
-         * @private
-         * @param {Event} event - Single or double click event
-         * @return {void}
-         */
-        control.addEventListener( 'dblclick', ( event ) => {
-            event.stopPropagation();
-        });
-        control.addEventListener( 'click', ( event ) => {
-            event.stopPropagation();
-        });
 
         // Requires progress
         if ( !progress ) throw new UiVideoPluginProgressException( 'Progress dom.progress.input not available' );
