@@ -100,7 +100,13 @@ export class UiVideoPluginFullscreen extends UiPlugin {
             return;
         }
 
-        // Prevent clicks from leaving the control
+        /**
+         * Prevent click events from bubbling to anywhere else
+         *  to avoid conflicts with other underlying events
+         * @private
+         * @param {Event} event - Single or double click event
+         * @return {void}
+         */
         control.addEventListener( 'dblclick', ( event ) => {
             event.stopPropagation();
         } );
