@@ -2,7 +2,7 @@
  * Requires
  */
 import { UiComponent } from '@squirrel-forge/ui-core';
-import { Exception, cloneObject, bindNodeList, isPojo } from '@squirrel-forge/ui-util';
+import { Exception, cloneObject, bindMultiClick, bindNodeList, isPojo } from '@squirrel-forge/ui-util';
 
 /**
  * Ui video component exception
@@ -86,8 +86,8 @@ export class UiVideoComponent extends UiComponent {
             native : false,
 
             // Autoplay video
-            // @†ype {boolean}
-            autoplay : false,
+            // @†ype {null|boolean}
+            autoplay : null,
 
             // Video sources
             // @type {Array<VideoSource>}
@@ -105,9 +105,25 @@ export class UiVideoComponent extends UiComponent {
             // @type {Object}
             controls : {
 
+                // Handle main controls display with js
+                // @type {boolean}
+                display : false,
+
                 // Blur clicks on main control after a delay
                 // @type {null|number}
                 blur : 500,
+
+                // Focus active button of state buttons after switching
+                // @type {boolean}
+                refocus : true,
+
+                // Multi click frequency, controls single/double click delay
+                // @type {number}
+                frequency : 350,
+
+                // Controls hide timeout after move
+                // @type {number}
+                timeout : 2500,
             },
 
             // Dom references
@@ -133,6 +149,10 @@ export class UiVideoComponent extends UiComponent {
                 // Replay button reference
                 // @type {string}
                 replay : '[data-video="ctrl:replay"]',
+
+                // Prevent control collision
+                // @type {string}
+                prevent : '[data-video="ctrl:prevent"]',
             }
         };
 
@@ -148,8 +168,10 @@ export class UiVideoComponent extends UiComponent {
             paused : { classOn : 'ui-video--paused', unsets : [ 'playing' ] },
             ended : { classOn : 'ui-video--ended', unsets : [ 'playing' ] },
             error : { classOn : 'ui-video--error', unsets : [ 'paused', 'playing', 'playable', 'loading' ] },
+            sourceNone : { global : false, classOn : 'ui-video--source-none' },
             controlsDefault : { global : false, classOn : 'ui-video--default-controls', unsets : [ 'controlsNative' ] },
             controlsNative : { global : false, classOn : 'ui-video--native-controls', unsets : [ 'controlsDefault' ] },
+            controlsShow : { global : false, classOn : 'ui-video--show-controls' },
         };
 
         // Initialize parent
@@ -182,15 +204,34 @@ export class UiVideoComponent extends UiComponent {
                 this.states.set( 'controlsDefault' );
             }
 
-            // Set autoplay
+            // Set/get autoplay
             const autoplay = this.config.get( 'autoplay' );
-            this.video.autoplay = autoplay;
-            if ( autoplay ) this.video.muted = true;
+            if ( typeof autoplay === 'boolean' ) {
+                this.video.autoplay = autoplay;
+            } else if ( autoplay === null ) {
+                this.config.set( 'autoplay', this.video.autoplay );
+            }
+
+            // Force muted initially when autoplay enabled
+            if ( this.video.autoplay ) this.video.muted = true;
+
+            // By default set no source state
+            this.states.set( 'sourceNone' );
 
             // Select a source if available
             const default_selected = this.config.get( 'selected' );
             if ( typeof default_selected === 'number' ) {
                 this.selectSource( default_selected );
+
+            } else if ( this.config.get( 'sources' ).length === 1 ) {
+
+                // Only one source available, select it by default
+                this.selectSource( 0 );
+            } else {
+
+                // None or multiple sources available
+                if ( this.debug ) this.debug.error( this.constructor.name + '::init No video source selected' );
+                this.dispatchEvent( 'video.source.none' );
             }
         } );
     }
@@ -200,12 +241,13 @@ export class UiVideoComponent extends UiComponent {
      * @public
      * @static
      * @param {HTMLElement} control - Interactive control element
+     * @param {boolean} display - Hard visibility handling
      * @return {void}
      */
-    static hideControl( control ) {
+    static hideControl( control, display = true ) {
         control.setAttribute( 'aria-hidden', 'true' );
         control.setAttribute( 'tabindex', -1 );
-        control.style.display = 'none';
+        if ( display ) control.style.display = 'none';
     }
 
     /**
@@ -213,12 +255,13 @@ export class UiVideoComponent extends UiComponent {
      * @public
      * @static
      * @param {HTMLElement} control - Interactive control element
+     * @param {boolean} display - Hard visibility handling
      * @return {void}
      */
-    static showControl( control ) {
+    static showControl( control, display = true ) {
         control.removeAttribute( 'aria-hidden' );
         control.removeAttribute( 'tabindex' );
-        control.style.display = '';
+        if ( display ) control.style.display = '';
     }
 
     /**
@@ -238,10 +281,12 @@ export class UiVideoComponent extends UiComponent {
             } ],
             [ 'play', () => {
                 this.states.set( 'playing' );
+                this.states.unset( 'controlsShow' );
                 if ( this.config.get( 'native' ) ) this.video.controls = true;
             } ],
             [ 'playing', () => {
                 this.states.set( 'playing' );
+                this.states.unset( 'controlsShow' );
                 if ( this.config.get( 'native' ) ) this.video.controls = true;
             } ],
             [ 'pause', () => {
@@ -258,13 +303,100 @@ export class UiVideoComponent extends UiComponent {
         const controls = this.getDomRefs( 'controls', false );
         if ( controls ) {
 
+            // References
+            const play = this.getDomRefs( 'play', false );
+            const pause = this.getDomRefs( 'pause', false );
+            const replay = this.getDomRefs( 'replay', false );
+            if ( !play || !pause || !replay ) {
+                window.console.error( { play, pause, replay } );
+                throw new UiVideoComponentException( 'Missing one or more main controls, see previous message for details.' );
+            }
+
+            // Main control visibility video events
+            bindNodeList( [ this.video ], [
+                [ 'canplay', () => {
+                    const display = this.config.get( 'controls.display' );
+                    this.constructor.showControl( play, display );
+                    this.constructor.hideControl( pause, display );
+                    this.constructor.hideControl( replay, display );
+                } ],
+                [ 'play', () => {
+                    const display = this.config.get( 'controls.display' );
+                    this.constructor.hideControl( play, display );
+                    this.constructor.showControl( pause, display );
+                    this.constructor.hideControl( replay, display );
+                } ],
+                [ 'playing', () => {
+                    const display = this.config.get( 'controls.display' );
+                    this.constructor.hideControl( play, display );
+                    this.constructor.showControl( pause, display );
+                    this.constructor.hideControl( replay, display );
+                } ],
+                [ 'pause', () => {
+                    const display = this.config.get( 'controls.display' );
+                    this.constructor.showControl( play, display );
+                    this.constructor.hideControl( pause, display );
+                    this.constructor.hideControl( replay, display );
+                } ],
+                [ 'ended', () => {
+                    const display = this.config.get( 'controls.display' );
+                    this.constructor.hideControl( play, display );
+                    this.constructor.hideControl( pause, display );
+                    this.constructor.showControl( replay, display );
+                } ],
+            ] );
+
+            // Initially hide all main controls
+            const display = this.config.get( 'controls.display' );
+            this.constructor.hideControl( play, display );
+            this.constructor.hideControl( pause, display );
+            this.constructor.hideControl( replay, display );
+
+            // Controls visibility
+            let controls_timeout = null;
+            controls.addEventListener( 'mousemove', () => {
+                if ( this.states.is( 'playable' ) ) {
+                    if ( !this.states.is( 'controlsShow' ) ) this.states.set( 'controlsShow' );
+                    if ( controls_timeout ) window.clearTimeout( controls_timeout );
+                    controls_timeout = window.setTimeout( () => {
+                        this.states.unset( 'controlsShow' );
+                    }, this.config.get( 'controls.timeout' ) );
+                } else if ( this.states.is( 'controlsShow' ) ) {
+                    this.states.unset( 'controlsShow' );
+                }
+            } );
+
+            // Controls multi click events
+            bindMultiClick( controls, ( event ) => {
+                this.dispatchEvent( 'video.controls.click', { event } );
+            }, ( event ) => {
+                this.dispatchEvent( 'video.controls.dblclick', { event } );
+            }, this.config.get( 'controls.frequency' ) );
+
+            /**
+             * Prevent click events from bubbling to anywhere else
+             *  to avoid conflicts with other underlying events
+             * @private
+             * @param {Event} event - Single or double click event
+             * @return {void}
+             */
+            const preventables = this.getDomRefs( 'prevent' );
+            for ( let i = 0; i < preventables.length; i++ ) {
+                preventables[ i ].addEventListener( 'dblclick', ( event ) => {
+                    event.stopPropagation();
+                });
+                preventables[ i ].addEventListener( 'click', ( event ) => {
+                    event.stopPropagation();
+                });
+            }
+
             /**
              * Controls play/pause/replay click listener
              *  used with native = false
              * @private
              * @return {void}
              */
-            controls.addEventListener( 'click', ( event ) => {
+            this.addEventListener( 'video.controls.click', ( event ) => {
 
                 // Ignore and prevent clicks bubbling if not playable
                 if ( !this.states.is( 'playable' ) ) {
@@ -291,6 +423,28 @@ export class UiVideoComponent extends UiComponent {
         } else if ( this.debug ) {
             this.debug.warn( this.constructor.name + '::bind Controls not available, could not bind any events' );
         }
+    }
+
+    /**
+     * Find source index by property value
+     * @param {string} prop - Source property name
+     * @param {*} value - Value to find
+     * @param {boolean} ret - Return the video source object
+     * @return {VideoSource|number|null} - Index or video source object
+     */
+    findSourceIndexProp( prop, value, ret = false ) {
+
+        // Sources not an array
+        const sources = this.config.get( 'sources' );
+        if ( !( sources instanceof Array ) ) {
+            throw new UiVideoComponentException( 'Invalid video sources, must be an array' );
+        }
+
+        // Find source with requested property value
+        for ( let i = 0; i < sources.length; i++ ) {
+            if ( sources[ i ][ prop ] === value ) return ret ? sources[ i ] : i;
+        }
+        return null;
     }
 
     /**
@@ -413,6 +567,7 @@ export class UiVideoComponent extends UiComponent {
         this.#current_source = src;
         this.video.appendChild( src );
         this.video.load();
+        this.states.unset( 'sourceNone' );
 
         // Allow for any actions after a new source was set
         this.dispatchEvent( 'video.source.set', { source, setter } );
@@ -442,6 +597,7 @@ export class UiVideoComponent extends UiComponent {
         // Remove index and source reference
         this.#current_index = null;
         this.#current_source = null;
+        this.states.set( 'sourceNone' );
 
         // Allow for any actions after the current source was unset
         this.dispatchEvent( 'video.source.unset', { source, setter } );
