@@ -110,7 +110,7 @@ export class UiVideoPluginFullscreen extends UiPlugin {
 
                 // Disable full screen mode and set states only
                 if ( this.context.states.is( 'fullscreen' ) ) {
-                    this.#exit_fullscreen( fullscreen, minimize, true );
+                    this.#exit_fullscreen( fullscreen, minimize, false, true );
                 }
             }
         };
@@ -221,17 +221,20 @@ export class UiVideoPluginFullscreen extends UiPlugin {
      * @private
      * @param {HTMLButtonElement} fullscreen - Full screen button
      * @param {HTMLButtonElement} minimize - Minimize button
+     * @param {boolean} withfocus - Apply focus changes
      * @return {void}
      */
-    #request_fullscreen( fullscreen, minimize ) {
+    #request_fullscreen( fullscreen, minimize, withfocus = false ) {
         this.context.dom.requestFullscreen().then( () => {
             this.context.states.set( 'fullscreen' );
             if ( fullscreen && minimize ) {
                 const display = this.context.config.get( 'fullscreen.display' );
                 this.context.constructor.hideControl( fullscreen, display );
                 this.context.constructor.showControl( minimize, display );
-                fullscreen.blur();
-                if ( this.context.config.get( 'controls.refocus' ) ) minimize.focus();
+                if ( withfocus ) {
+                    fullscreen.blur();
+                    if ( this.context.config.get( 'controls.refocus' ) ) minimize.focus();
+                }
             }
         } ).catch( ( e ) => {
             window.console.error( this.constructor.name + '::requestFullscreen Failed:', e );
@@ -244,17 +247,20 @@ export class UiVideoPluginFullscreen extends UiPlugin {
      * @private
      * @param {HTMLButtonElement} fullscreen - Full screen button
      * @param {HTMLButtonElement} minimize - Minimize button
+     * @param {boolean} withfocus - Apply focus changes
      * @param {boolean} noexit - Only set state, do not run exit code
      * @return {void}
      */
-    #exit_fullscreen( fullscreen, minimize, noexit = false ) {
+    #exit_fullscreen( fullscreen, minimize, withfocus = false, noexit = false ) {
         this.context.states.unset( 'fullscreen' );
         if ( fullscreen && minimize ) {
             const display = this.context.config.get( 'fullscreen.display' );
             this.context.constructor.showControl( fullscreen, display );
             this.context.constructor.hideControl( minimize, display );
-            minimize.blur();
-            if ( this.context.config.get( 'controls.refocus' ) ) fullscreen.focus();
+            if ( withfocus ) {
+                minimize.blur();
+                if ( this.context.config.get( 'controls.refocus' ) ) fullscreen.focus();
+            }
         }
         if ( noexit ) return;
         try {
@@ -309,12 +315,12 @@ export class UiVideoPluginFullscreen extends UiPlugin {
         fullscreen.addEventListener( 'click', ( event ) => {
             if ( !this.context.config.get( 'fullscreen.enabled' ) ) return;
             event.preventDefault();
-            this.#request_fullscreen( fullscreen, minimize );
+            this.#request_fullscreen( fullscreen, minimize, true );
         } );
         minimize.addEventListener( 'click', ( event ) => {
             if ( !this.context.config.get( 'fullscreen.enabled' ) ) return;
             event.preventDefault();
-            this.#exit_fullscreen( fullscreen, minimize );
+            this.#exit_fullscreen( fullscreen, minimize, true );
         } );
 
         // Initial state
