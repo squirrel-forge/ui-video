@@ -72,6 +72,7 @@ class UiVideoComponent extends UiComponent {
     video : null|HTMLVideoElement
     selectSource( index = null ) {} // void
     setPoster( poster ) {} // void
+    findSourceIndexProp( prop, value, ret = false ) {} // VideoSource|number|null
     getCurrentSource() {} // null|String
     getCurrentIndex() {} // null|Number
     setSource( source, setter = null ) {} // void
@@ -81,7 +82,14 @@ class UiVideoComponent extends UiComponent {
 For more details check the [UiVideoComponent source file](../src/es6/Video/UiVideoComponent.js).
 
 #### Events
-
+ - **video.source.none** - Fired after initialized when no source was selected.
+ - **video.poster.set** - Fired after a new poster was set.
+ - **video.poster.unset** - Fired after the current poster was removed.
+ - **video.source.update** - Fired before a source is set or unset and can manipulate the source, can be prevented with event.preventDefault().
+ - **video.source.before** - Fired before a new source is set.
+ - **video.source.set** - Fired after a new source was set.
+ - **video.source.unset** - Fired after the current source was removed.
+ - **video.source.error** - Fired if a source could not be loaded for some reason.
 
 #### Using the component
 For details refer to the settings, class overview and code file mentioned above.
@@ -103,6 +111,21 @@ const source = {
     type : 'mimetype', // Defaults to video/mp4 if not set
     poster : 'image://poster.url', // Optional poster image url
 };
+```
+
+#### Source selection
+If you have no sources or are using more than one source you must define which source if any should be selected initially.
+
+Either via attribute on the component:
+```html
+<div data-selected="0">
+```
+
+Or by attaching to the **video.source.none** event:
+```javascript
+element.addEventListener( 'video.source.none', ( event ) => {
+    event.detail.target.selectSource( 0 );
+} );
 ```
 
 #### Component markup
