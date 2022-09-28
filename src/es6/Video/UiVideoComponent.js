@@ -563,6 +563,9 @@ export class UiVideoComponent extends UiComponent {
         src.type = source.type || this.config.get( 'defaulttype' );
         src.src = source.src;
 
+        // Allow for any setting prior to setting and loading the new source
+        this.dispatchEvent( 'video.source.before', { source, setter } );
+
         // Add new source and begin loading
         this.#current_source = src;
         this.video.appendChild( src );
