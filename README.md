@@ -22,7 +22,10 @@ Package contents listing by namespace.
  - [Video](docs/Video.md)
    - [UiVideoComponent](docs/Video.md#uivideocomponent)
  - [Plugins](docs/Plugins.md)
+   - [UiVideoPluginFullscreen](docs/Plugins.md#uivideopluginfullscreen)
+   - [UiVideoPluginProgress](docs/Plugins.md#uivideopluginprogress)
    - [UiVideoPluginResponsive](docs/Plugins.md#uivideopluginresponsive)
+   - [UiVideoPluginSound](docs/Plugins.md#uivideopluginsound)
    - [UiVideoPluginTracking](docs/Plugins.md#uivideoplugintracking)
 
 ## Issues and docs
