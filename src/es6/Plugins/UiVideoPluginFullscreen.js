@@ -5,7 +5,7 @@ import { UiPlugin } from '@squirrel-forge/ui-core';
 import { Exception } from '@squirrel-forge/ui-util';
 
 /**
- * Ui video plugin fullscreen exception
+ * Ui video plugin full screen exception
  * @class
  * @extends Exception
  */
@@ -41,11 +41,11 @@ export class UiVideoPluginFullscreen extends UiPlugin {
         // Extend default config
         this.extendConfig = {
 
-            // Fullscreen control options
+            // Full screen control options
             // @type {Object}
             fullscreen : {
 
-                // Fullscreen enabled
+                // Full screen enabled
                 // @type {boolean}
                 enabled : true,
 
@@ -58,11 +58,20 @@ export class UiVideoPluginFullscreen extends UiPlugin {
             // @type {Object}
             dom : {
 
-                // Fullscreen button references
+                // Full screen button references
                 // @type {object}
                 fullscreen : {
+
+                    // Full screen control wrapper
+                    // @type {string}
                     control : '.ui-video__control--fullscreen',
+
+                    // Open full screen button
+                    // @type {string}
                     on : '[data-video="ctrl:fullscreen"]',
+
+                    // Close full screen button
+                    // @type {string}
                     off : '[data-video="ctrl:minimize"]',
                 },
             },
@@ -175,7 +184,7 @@ export class UiVideoPluginFullscreen extends UiPlugin {
     }
 
     /**
-     * Exit fullscreen mode
+     * Exit full screen mode
      * @public
      * @return {void}
      */
