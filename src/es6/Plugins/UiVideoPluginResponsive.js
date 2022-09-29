@@ -82,7 +82,7 @@ export class UiVideoPluginResponsive extends UiPlugin {
         // Register events
         this.registerEvents = [
             [ 'video.source.update', ( event ) => { this.#event_source_update( event ); } ],
-            [ 'video.source.set', ( event ) => { this.#event_source_set( event ); } ],
+            [ 'video.source.before', ( event ) => { this.#event_source_before( event ); } ],
         ];
     }
 
@@ -166,17 +166,19 @@ export class UiVideoPluginResponsive extends UiPlugin {
     }
 
     /**
-     * Event video.source.set
+     * Event video.source.before
      * @private
      * @param {Event} event - Source set event
      * @return {void}
      */
-    #event_source_set( event ) {
+    #event_source_before( event ) {
 
         // Set previous time position and play state
         if ( this.context.config.get( 'responsive.rememberState' ) ) {
-            if ( this.#previous_currentTime !== null ) this.context.video.currentTime = this.#previous_currentTime;
-            if ( this.#previous_paused !== null && this.#previous_paused === false ) this.context.video.play();
+            this.context.video.addEventListener( 'loadeddata', () => {
+                if ( this.#previous_paused === false ) this.context.video.play();
+                if ( this.#previous_currentTime !== null ) this.context.video.currentTime = this.#previous_currentTime;
+            }, { once : true } );
         }
     }
 }
