@@ -1,6 +1,6 @@
 /* !
  * @module      : @squirrel-forge/ui-video
- * @version     : 0.5.1
+ * @version     : 0.6.0
  * @license     : MIT
  * @copyright   : 2022 squirrel-forge
  * @author      : Daniel Hartwell aka. siux <me@siux.info>
@@ -15,5 +15,8 @@ export { UiVideoComponent } from './Video/UiVideoComponent.js';
 /**
  * Plugins
  */
+export { UiVideoPluginFullscreen } from './Plugins/UiVideoPluginFullscreen.js';
+export { UiVideoPluginProgress } from './Plugins/UiVideoPluginProgress.js';
 export { UiVideoPluginResponsive } from './Plugins/UiVideoPluginResponsive.js';
+export { UiVideoPluginSound } from './Plugins/UiVideoPluginSound.js';
 export { UiVideoPluginTracking } from './Plugins/UiVideoPluginTracking.js';
